@@ -4,9 +4,8 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { supabase } from '@/lib/supabase'
-import { ArrowLeft, Users, Hash } from 'lucide-react'
-import { isSupabaseConfigured } from '@/lib/supabase'
+import { supabase, isSupabaseConfigured } from '@/lib/supabase'
+import { ArrowLeft, Users, Hash, AlertCircle } from 'lucide-react'
 
 interface Player {
   id: string
@@ -39,11 +38,14 @@ export function PlayerJoin({ onJoinSuccess, onBack }: PlayerJoinProps) {
   const [error, setError] = useState('')
 
   const handleJoinGame = async () => {
-    if (!playerName.trim() || !gameCode.trim()) return
+    if (!playerName.trim() || !gameCode.trim()) {
+      setError('Por favor completa todos los campos')
+      return
+    }
 
     // Check if Supabase is configured
     if (!isSupabaseConfigured()) {
-      setError('Para usar el modo multijugador, necesitas configurar Supabase. Ve a supabase.com, crea un proyecto y actualiza las variables de entorno en .env.local')
+      setError('Para usar el modo multijugador, necesitas configurar Supabase. Las variables de entorno no están configuradas correctamente.')
       return
     }
 
@@ -51,30 +53,59 @@ export function PlayerJoin({ onJoinSuccess, onBack }: PlayerJoinProps) {
     setError('')
 
     try {
-      console.log('Attempting to join game with code:', gameCode.toUpperCase())
-      
+      console.log('Searching for game with code:', gameCode.toUpperCase())
+
       // Buscar la partida
-      const { data: gameData, error: gameError } = await supabase
+      const gameResponse = await supabase
         .from('games')
         .select('*')
         .eq('code', gameCode.toUpperCase())
         .eq('status', 'waiting')
         .single()
 
-      console.log('Game search result:', { gameData, gameError })
-      if (gameError || !gameData) {
+      console.log('Game search response:', gameResponse)
+
+      if (gameResponse.error) {
+        console.error('Game search error:', gameResponse.error)
+        
+        if (gameResponse.error.code === 'SUPABASE_NOT_CONFIGURED') {
+          setError('Supabase no está configurado correctamente.')
+          return
+        }
+        
         setError('Código de partida no válido o la partida ya comenzó')
         return
       }
 
+      if (!gameResponse.data) {
+        setError('Código de partida no válido o la partida ya comenzó')
+        return
+      }
+
+      const gameData = gameResponse.data
+
+      console.log('Found game:', gameData)
+
       // Verificar cuántos jugadores hay
-      const { data: existingPlayers, error: playersError } = await supabase
+      const playersResponse = await supabase
         .from('players')
         .select('*')
         .eq('game_id', gameData.id)
 
-      console.log('Existing players:', { existingPlayers, playersError })
-      if (playersError) throw playersError
+      console.log('Players check response:', playersResponse)
+
+      if (playersResponse.error) {
+        console.error('Players check error:', playersResponse.error)
+        
+        if (playersResponse.error.code === 'SUPABASE_NOT_CONFIGURED') {
+          setError('Supabase no está configurado correctamente.')
+          return
+        }
+        
+        throw new Error(playersResponse.error.message || 'Error al verificar jugadores')
+      }
+
+      const existingPlayers = playersResponse.data || []
 
       if (existingPlayers.length >= 6) {
         setError('La partida está llena (máximo 6 jugadores)')
@@ -88,15 +119,10 @@ export function PlayerJoin({ onJoinSuccess, onBack }: PlayerJoinProps) {
         return
       }
 
-      console.log('Creating new player:', {
-        game_id: gameData.id,
-        name: playerName.trim(),
-        avatar: selectedAvatar,
-        position: 0,
-        is_admin: false
-      })
+      console.log('Creating new player for game:', gameData.id)
+
       // Crear el jugador
-      const { data: playerData, error: playerError } = await supabase
+      const playerResponse = await supabase
         .from('players')
         .insert({
           game_id: gameData.id,
@@ -108,28 +134,62 @@ export function PlayerJoin({ onJoinSuccess, onBack }: PlayerJoinProps) {
         .select()
         .single()
 
-      console.log('Player creation result:', { playerData, playerError })
-      if (playerError) throw playerError
+      console.log('Player creation response:', playerResponse)
+
+      if (playerResponse.error) {
+        console.error('Player creation error:', playerResponse.error)
+        
+        if (playerResponse.error.code === 'SUPABASE_NOT_CONFIGURED') {
+          setError('Supabase no está configurado correctamente.')
+          return
+        }
+        
+        throw new Error(playerResponse.error.message || 'Error al crear el jugador')
+      }
+
+      if (!playerResponse.data) {
+        throw new Error('No se recibieron datos al crear el jugador')
+      }
+
+      const playerData = playerResponse.data
 
       // Obtener todos los jugadores actualizados
-      const { data: allPlayers, error: allPlayersError } = await supabase
+      const allPlayersResponse = await supabase
         .from('players')
         .select('*')
         .eq('game_id', gameData.id)
         .order('created_at')
 
-      console.log('All players after join:', { allPlayers, allPlayersError })
-      if (allPlayersError) throw allPlayersError
+      console.log('All players response:', allPlayersResponse)
 
-      console.log('Successfully joined game, calling onJoinSuccess')
+      if (allPlayersResponse.error) {
+        console.error('All players fetch error:', allPlayersResponse.error)
+        
+        if (allPlayersResponse.error.code === 'SUPABASE_NOT_CONFIGURED') {
+          setError('Supabase no está configurado correctamente.')
+          return
+        }
+        
+        throw new Error(allPlayersResponse.error.message || 'Error al obtener jugadores')
+      }
+
+      const allPlayers = allPlayersResponse.data || []
+
+      console.log('Successfully joined game:', { gameData, playerData, allPlayers })
+
       onJoinSuccess(gameData, playerData, allPlayers)
     } catch (error) {
-      console.error('Error joining game:', error)
-      if (error.message?.includes('not configured')) {
-        setError('Supabase no está configurado correctamente.')
-      } else {
-        setError('Error al unirse a la partida. Por favor intenta de nuevo.')
+      console.error('Error in handleJoinGame:', error)
+      
+      let errorMessage = 'Error desconocido al unirse a la partida'
+      
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (typeof error === 'string') {
+        errorMessage = error
       }
+      
+      setError(`Error al unirse a la partida: ${errorMessage}`)
     } finally {
       setIsJoining(false)
     }
@@ -168,7 +228,10 @@ export function PlayerJoin({ onJoinSuccess, onBack }: PlayerJoinProps) {
             </label>
             <Input
               value={gameCode}
-              onChange={(e) => setGameCode(e.target.value.toUpperCase())}
+              onChange={(e) => {
+                setGameCode(e.target.value.toUpperCase())
+                setError('')
+              }}
               placeholder="Ej: ABC123"
               className="text-center text-lg font-mono tracking-wider border-amber-200 focus:border-amber-400"
               maxLength={6}
@@ -182,7 +245,10 @@ export function PlayerJoin({ onJoinSuccess, onBack }: PlayerJoinProps) {
             </label>
             <Input
               value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
+              onChange={(e) => {
+                setPlayerName(e.target.value)
+                setError('')
+              }}
               placeholder="Escribe tu nombre..."
               className="text-center text-lg font-medium border-amber-200 focus:border-amber-400"
               maxLength={20}
@@ -215,8 +281,11 @@ export function PlayerJoin({ onJoinSuccess, onBack }: PlayerJoinProps) {
 
           {/* Error */}
           {error && (
-            <div className="p-3 bg-red-100 border border-red-200 rounded-lg text-red-700 text-sm">
-              {error}
+            <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-red-700">
+                {error}
+              </div>
             </div>
           )}
 
@@ -240,6 +309,21 @@ export function PlayerJoin({ onJoinSuccess, onBack }: PlayerJoinProps) {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Configuration status */}
+      {!isSupabaseConfigured() && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="pt-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-blue-700">
+                <p className="font-medium mb-1">Modo Multijugador No Disponible</p>
+                <p>Para habilitar el juego multijugador en tiempo real, configura Supabase haciendo clic en "Connect to Supabase" en la esquina superior derecha.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

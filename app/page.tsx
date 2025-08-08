@@ -108,11 +108,10 @@ export default function App() {
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
                   <h3 className="font-semibold text-blue-800 mb-2">Variables necesarias:</h3>
-                  <li>Ve a <a href="https://supabase.com" target="_blank" className="text-blue-600 underline">supabase.com</a> y crea una cuenta</li>
-                  <li>Crea un nuevo proyecto en Supabase</li>
-                  <li>Ve a Settings → API y copia tu Project URL y anon key</li>
-                  <li>Actualiza el archivo .env.local con tus credenciales</li>
-                  <li>Ejecuta la migración SQL desde supabase/migrations/001_create_game_tables.sql</li>
+                  <code className="text-xs text-blue-700 block">
+                    NEXT_PUBLIC_SUPABASE_URL=tu_url_de_supabase<br/>
+                    NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_anonima
+                  </code>
                 </div>
               </div>
 
@@ -151,7 +150,6 @@ export default function App() {
   }
 
   const handleJoinGame = (game: Game, player: Player, allPlayers: Player[]) => {
-    console.log('handleJoinGame called with:', { game, player, allPlayers })
     setCurrentGame(game)
     setCurrentPlayer(player)
     setPlayers(allPlayers)

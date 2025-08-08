@@ -4,8 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, Users, Sparkles, Crown } from 'lucide-react'
-
+import { Plus, Users, Sparkles, Crown, AlertCircle } from 'lucide-react'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 
 interface Player {
@@ -35,26 +34,34 @@ export function GameLobby({ onCreateGame, onJoinGame }: GameLobbyProps) {
   const [playerName, setPlayerName] = useState('')
   const [selectedAvatar, setSelectedAvatar] = useState(avatars[0])
   const [isCreating, setIsCreating] = useState(false)
+  const [error, setError] = useState('')
 
   const generateGameCode = () => {
     return Math.random().toString(36).substring(2, 8).toUpperCase()
   }
 
   const handleCreateGame = async () => {
-    if (!playerName.trim()) return
+    if (!playerName.trim()) {
+      setError('Por favor ingresa tu nombre')
+      return
+    }
 
     // Check if Supabase is configured
     if (!isSupabaseConfigured()) {
-      alert('Para usar el modo multijugador, necesitas configurar Supabase. Ve a supabase.com, crea un proyecto y actualiza las variables de entorno en .env.local')
+      setError('Para usar el modo multijugador, necesitas configurar Supabase. Las variables de entorno no están configuradas correctamente.')
       return
     }
 
     setIsCreating(true)
+    setError('')
+
     try {
       const gameCode = generateGameCode()
       
+      console.log('Creating game with code:', gameCode)
+      
       // Crear la partida
-      const { data: gameData, error: gameError } = await supabase
+      const gameResponse = await supabase
         .from('games')
         .insert({
           code: gameCode,
@@ -64,10 +71,29 @@ export function GameLobby({ onCreateGame, onJoinGame }: GameLobbyProps) {
         .select()
         .single()
 
-      if (gameError) throw gameError
+      console.log('Game creation response:', gameResponse)
+
+      if (gameResponse.error) {
+        console.error('Game creation error:', gameResponse.error)
+        
+        if (gameResponse.error.code === 'SUPABASE_NOT_CONFIGURED') {
+          setError('Supabase no está configurado correctamente. Por favor verifica las variables de entorno.')
+          return
+        }
+        
+        throw new Error(gameResponse.error.message || 'Error al crear la partida')
+      }
+
+      if (!gameResponse.data) {
+        throw new Error('No se recibieron datos al crear la partida')
+      }
+
+      const gameData = gameResponse.data
+
+      console.log('Creating admin player for game:', gameData.id)
 
       // Crear el jugador administrador
-      const { data: playerData, error: playerError } = await supabase
+      const playerResponse = await supabase
         .from('players')
         .insert({
           game_id: gameData.id,
@@ -79,16 +105,40 @@ export function GameLobby({ onCreateGame, onJoinGame }: GameLobbyProps) {
         .select()
         .single()
 
-      if (playerError) throw playerError
+      console.log('Player creation response:', playerResponse)
 
+      if (playerResponse.error) {
+        console.error('Player creation error:', playerResponse.error)
+        
+        if (playerResponse.error.code === 'SUPABASE_NOT_CONFIGURED') {
+          setError('Supabase no está configurado correctamente. Por favor verifica las variables de entorno.')
+          return
+        }
+        
+        throw new Error(playerResponse.error.message || 'Error al crear el jugador')
+      }
+
+      if (!playerResponse.data) {
+        throw new Error('No se recibieron datos al crear el jugador')
+      }
+
+      const playerData = playerResponse.data
+
+      console.log('Game and player created successfully:', { gameData, playerData })
+      
       onCreateGame(gameData, playerData)
     } catch (error) {
-      console.error('Error creating game:', error)
-      if (error.message?.includes('not configured')) {
-        alert('Supabase no está configurado correctamente. Por favor verifica tu configuración.')
-      } else {
-        alert('Error al crear la partida. Por favor intenta de nuevo.')
+      console.error('Error in handleCreateGame:', error)
+      
+      let errorMessage = 'Error desconocido al crear la partida'
+      
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (typeof error === 'string') {
+        errorMessage = error
       }
+      
+      setError(`Error al crear la partida: ${errorMessage}`)
     } finally {
       setIsCreating(false)
     }
@@ -113,7 +163,10 @@ export function GameLobby({ onCreateGame, onJoinGame }: GameLobbyProps) {
             </label>
             <Input
               value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
+              onChange={(e) => {
+                setPlayerName(e.target.value)
+                setError('') // Clear error when user types
+              }}
               placeholder="Escribe tu nombre..."
               className="text-center text-lg font-medium border-amber-200 focus:border-amber-400"
               maxLength={20}
@@ -143,6 +196,16 @@ export function GameLobby({ onCreateGame, onJoinGame }: GameLobbyProps) {
               ))}
             </div>
           </div>
+
+          {/* Error message */}
+          {error && (
+            <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-red-700">
+                {error}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -224,6 +287,26 @@ export function GameLobby({ onCreateGame, onJoinGame }: GameLobbyProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Configuration status */}
+      {!isSupabaseConfigured() && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="pt-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-blue-700">
+                <p className="font-medium mb-1">Modo Multijugador No Disponible</p>
+                <p>Para habilitar el juego multijugador en tiempo real, configura Supabase haciendo clic en "Connect to Supabase" en la esquina superior derecha.</p>
+                <div className="mt-2 text-xs bg-blue-100 p-2 rounded">
+                  <strong>Variables necesarias:</strong><br/>
+                  NEXT_PUBLIC_SUPABASE_URL<br/>
+                  NEXT_PUBLIC_SUPABASE_ANON_KEY
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
