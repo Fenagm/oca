@@ -37,9 +37,34 @@ export function WaitingRoom({ game, currentPlayer, players: initialPlayers, onSt
   const [showAdminPanel, setShowAdminPanel] = useState(false)
 
   useEffect(() => {
+    // Load initial players
+    const loadPlayers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('players')
+          .select('*')
+          .eq('game_id', game.id)
+          .order('created_at')
+        
+        if (error) {
+          console.error('Error loading players:', error)
+          return
+        }
+        
+        if (data) {
+          console.log('Loaded players:', data)
+          setPlayers(data)
+        }
+      } catch (error) {
+        console.error('Error in loadPlayers:', error)
+      }
+    }
+
+    loadPlayers()
+
     // Suscribirse a cambios en los jugadores
-    const playersSubscription = supabase
-      .channel('players-changes')
+    const playersChannel = supabase
+      .channel(`players-${game.id}`)
       .on(
         'postgres_changes',
         {
@@ -48,15 +73,22 @@ export function WaitingRoom({ game, currentPlayer, players: initialPlayers, onSt
           table: 'players',
           filter: `game_id=eq.${game.id}`
         },
-        async () => {
+        async (payload) => {
+          console.log('Players change detected:', payload)
           // Recargar jugadores
-          const { data } = await supabase
+          const { data, error } = await supabase
             .from('players')
             .select('*')
             .eq('game_id', game.id)
             .order('created_at')
           
+          if (error) {
+            console.error('Error reloading players:', error)
+            return
+          }
+          
           if (data) {
+            console.log('Reloaded players:', data)
             setPlayers(data)
           }
         }
@@ -64,8 +96,8 @@ export function WaitingRoom({ game, currentPlayer, players: initialPlayers, onSt
       .subscribe()
 
     // Suscribirse a cambios en el juego
-    const gameSubscription = supabase
-      .channel('game-changes')
+    const gameChannel = supabase
+      .channel(`game-${game.id}`)
       .on(
         'postgres_changes',
         {
@@ -75,6 +107,7 @@ export function WaitingRoom({ game, currentPlayer, players: initialPlayers, onSt
           filter: `id=eq.${game.id}`
         },
         (payload) => {
+          console.log('Game change detected:', payload)
           if (payload.new.status === 'playing') {
             onStartGame()
           }
@@ -83,8 +116,9 @@ export function WaitingRoom({ game, currentPlayer, players: initialPlayers, onSt
       .subscribe()
 
     return () => {
-      playersSubscription.unsubscribe()
-      gameSubscription.unsubscribe()
+      console.log('Unsubscribing from channels')
+      playersChannel.unsubscribe()
+      gameChannel.unsubscribe()
     }
   }, [game.id, onStartGame])
 
@@ -105,12 +139,16 @@ export function WaitingRoom({ game, currentPlayer, players: initialPlayers, onSt
     }
 
     try {
+      console.log('Starting game with players:', players)
       const { error } = await supabase
         .from('games')
         .update({ status: 'playing' })
         .eq('id', game.id)
 
-      if (error) throw error
+      if (error) {
+        console.error('Error starting game:', error)
+        throw error
+      }
     } catch (error) {
       console.error('Error starting game:', error)
       alert('Error al iniciar el juego')
@@ -119,34 +157,48 @@ export function WaitingRoom({ game, currentPlayer, players: initialPlayers, onSt
 
   const handleLeaveGame = async () => {
     try {
+      console.log('Player leaving game:', currentPlayer.id)
       // Eliminar jugador
-      await supabase
+      const { error: deleteError } = await supabase
         .from('players')
         .delete()
         .eq('id', currentPlayer.id)
 
+      if (deleteError) {
+        console.error('Error deleting player:', deleteError)
+        throw deleteError
+      }
       // Si era el admin y hay otros jugadores, hacer admin al siguiente
       if (currentPlayer.is_admin && players.length > 1) {
         const nextAdmin = players.find(p => p.id !== currentPlayer.id)
         if (nextAdmin) {
-          await supabase
+          const { error: adminError } = await supabase
             .from('players')
             .update({ is_admin: true })
             .eq('id', nextAdmin.id)
+          
+          if (adminError) {
+            console.error('Error updating admin:', adminError)
+          }
         }
       }
 
       // Si no quedan jugadores, eliminar la partida
       if (players.length <= 1) {
-        await supabase
+        const { error: gameError } = await supabase
           .from('games')
           .delete()
           .eq('id', game.id)
+        
+        if (gameError) {
+          console.error('Error deleting game:', gameError)
+        }
       }
 
       onLeaveGame()
     } catch (error) {
       console.error('Error leaving game:', error)
+      alert('Error al salir del juego')
     }
   }
 
@@ -159,6 +211,7 @@ export function WaitingRoom({ game, currentPlayer, players: initialPlayers, onSt
     )
   }
 
+  console.log('Rendering WaitingRoom with players:', players)
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
@@ -217,6 +270,13 @@ export function WaitingRoom({ game, currentPlayer, players: initialPlayers, onSt
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {players.length === 0 ? (
+            <div className="text-center py-8 text-amber-600">
+              <div className="text-4xl mb-4">⏳</div>
+              <p className="text-lg font-medium mb-2">Cargando jugadores...</p>
+              <p className="text-sm">Por favor espera un momento</p>
+            </div>
+          ) : (
           <div className="grid gap-4">
             {players.map((player, index) => (
               <div
@@ -305,6 +365,7 @@ export function WaitingRoom({ game, currentPlayer, players: initialPlayers, onSt
                 </p>
               )}
             </div>
+          )}
           </CardContent>
         </Card>
       )}

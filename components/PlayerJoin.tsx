@@ -51,6 +51,8 @@ export function PlayerJoin({ onJoinSuccess, onBack }: PlayerJoinProps) {
     setError('')
 
     try {
+      console.log('Attempting to join game with code:', gameCode.toUpperCase())
+      
       // Buscar la partida
       const { data: gameData, error: gameError } = await supabase
         .from('games')
@@ -59,6 +61,7 @@ export function PlayerJoin({ onJoinSuccess, onBack }: PlayerJoinProps) {
         .eq('status', 'waiting')
         .single()
 
+      console.log('Game search result:', { gameData, gameError })
       if (gameError || !gameData) {
         setError('Código de partida no válido o la partida ya comenzó')
         return
@@ -70,6 +73,7 @@ export function PlayerJoin({ onJoinSuccess, onBack }: PlayerJoinProps) {
         .select('*')
         .eq('game_id', gameData.id)
 
+      console.log('Existing players:', { existingPlayers, playersError })
       if (playersError) throw playersError
 
       if (existingPlayers.length >= 6) {
@@ -84,6 +88,13 @@ export function PlayerJoin({ onJoinSuccess, onBack }: PlayerJoinProps) {
         return
       }
 
+      console.log('Creating new player:', {
+        game_id: gameData.id,
+        name: playerName.trim(),
+        avatar: selectedAvatar,
+        position: 0,
+        is_admin: false
+      })
       // Crear el jugador
       const { data: playerData, error: playerError } = await supabase
         .from('players')
@@ -97,6 +108,7 @@ export function PlayerJoin({ onJoinSuccess, onBack }: PlayerJoinProps) {
         .select()
         .single()
 
+      console.log('Player creation result:', { playerData, playerError })
       if (playerError) throw playerError
 
       // Obtener todos los jugadores actualizados
@@ -106,8 +118,10 @@ export function PlayerJoin({ onJoinSuccess, onBack }: PlayerJoinProps) {
         .eq('game_id', gameData.id)
         .order('created_at')
 
+      console.log('All players after join:', { allPlayers, allPlayersError })
       if (allPlayersError) throw allPlayersError
 
+      console.log('Successfully joined game, calling onJoinSuccess')
       onJoinSuccess(gameData, playerData, allPlayers)
     } catch (error) {
       console.error('Error joining game:', error)

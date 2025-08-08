@@ -151,6 +151,7 @@ export default function App() {
   }
 
   const handleJoinGame = (game: Game, player: Player, allPlayers: Player[]) => {
+    console.log('handleJoinGame called with:', { game, player, allPlayers })
     setCurrentGame(game)
     setCurrentPlayer(player)
     setPlayers(allPlayers)
@@ -181,8 +182,8 @@ export default function App() {
               </div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
                 Juego de la Oca
-                  NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co<br/>
-                  NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_anonima_aqui
+              </h1>
+              <div className="p-3 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg">
                 <Users className="w-8 h-8 text-amber-600" />
               </div>
             </div>
