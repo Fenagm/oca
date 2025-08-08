@@ -7,9 +7,10 @@ export const isSupabaseConfigured = () => {
   
   return url && 
          key && 
-         url !== 'your_https://pgcwpixpokikajpoqpzm.supabase.co' &&
-         key !== 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnY3dwaXhwb2tpa2FqcG9xcHptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2NTU2ODUsImV4cCI6MjA3MDIzMTY4NX0.RG20ih9Bz5d4US9h0Da691E3lpkON5iSC0BrINJRURI' &&
-         url.includes('supabase.co')
+         url !== 'your_supabase_project_url' &&
+         key !== 'your_supabase_anon_key' &&
+         url.startsWith('https://') &&
+         (url.includes('supabase.co') || url.includes('localhost'))
 }
 
 // Lazy initialization of Supabase client

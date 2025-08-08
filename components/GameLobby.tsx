@@ -45,7 +45,7 @@ export function GameLobby({ onCreateGame, onJoinGame }: GameLobbyProps) {
 
     // Check if Supabase is configured
     if (!isSupabaseConfigured()) {
-      alert('Para usar el modo multijugador, necesitas configurar Supabase. Haz clic en "Connect to Supabase" en la esquina superior derecha.')
+      alert('Para usar el modo multijugador, necesitas configurar Supabase. Ve a supabase.com, crea un proyecto y actualiza las variables de entorno en .env.local')
       return
     }
 

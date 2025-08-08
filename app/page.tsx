@@ -108,10 +108,11 @@ export default function App() {
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
                   <h3 className="font-semibold text-blue-800 mb-2">Variables necesarias:</h3>
-                  <code className="text-xs text-blue-700 block">
-                    NEXT_PUBLIC_SUPABASE_URL=tu_url_de_supabase<br/>
-                    NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_anonima
-                  </code>
+                  <li>Ve a <a href="https://supabase.com" target="_blank" className="text-blue-600 underline">supabase.com</a> y crea una cuenta</li>
+                  <li>Crea un nuevo proyecto en Supabase</li>
+                  <li>Ve a Settings → API y copia tu Project URL y anon key</li>
+                  <li>Actualiza el archivo .env.local con tus credenciales</li>
+                  <li>Ejecuta la migración SQL desde supabase/migrations/001_create_game_tables.sql</li>
                 </div>
               </div>
 
@@ -180,8 +181,8 @@ export default function App() {
               </div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
                 Juego de la Oca
-              </h1>
-              <div className="p-3 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg">
+                  NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co<br/>
+                  NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_anonima_aqui
                 <Users className="w-8 h-8 text-amber-600" />
               </div>
             </div>
