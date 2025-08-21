@@ -63,3 +63,20 @@ CREATE TRIGGER update_games_updated_at BEFORE UPDATE ON games
 
 CREATE TRIGGER update_players_updated_at BEFORE UPDATE ON players
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- IMPORTANTE: Configurar Realtime
+-- Estas tablas deben estar habilitadas para realtime en el dashboard de Supabase
+-- O ejecutar estos comandos para habilitar realtime:
+
+-- Habilitar realtime para las tablas
+ALTER PUBLICATION supabase_realtime ADD TABLE games;
+ALTER PUBLICATION supabase_realtime ADD TABLE players;
+ALTER PUBLICATION supabase_realtime ADD TABLE special_cells;
+
+-- Asegurar que las políticas RLS permiten el acceso a realtime
+-- Esto es necesario para que las suscripciones funcionen correctamente
+
+-- Nota: También es importante verificar en el dashboard de Supabase:
+-- 1. Ir a Database > Replication
+-- 2. Asegurar que las tablas games, players, y special_cells estén habilitadas
+-- 3. Verificar que "Enable realtime" esté marcado para estas tablas

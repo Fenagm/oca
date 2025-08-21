@@ -37,35 +37,59 @@ export function WaitingRoom({ game, currentPlayer, players: initialPlayers, onSt
   const [showAdminPanel, setShowAdminPanel] = useState(false)
 
   useEffect(() => {
-    // Suscribirse a cambios en los jugadores
+    console.log('WaitingRoom: Setting up subscriptions for game:', game.id)
+    
+    // Función para recargar jugadores
+    const loadPlayers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('players')
+          .select('*')
+          .eq('game_id', game.id)
+          .order('created_at')
+        
+        if (error) {
+          console.error('Error loading players:', error)
+          return
+        }
+        
+        console.log('WaitingRoom: Loaded players:', data)
+        if (data) {
+          setPlayers(data)
+        }
+      } catch (error) {
+        console.error('Error in loadPlayers:', error)
+      }
+    }
+
+    // Cargar jugadores inicialmente
+    loadPlayers()
+
+    // Configurar suscripción a cambios en jugadores con un nombre único
+    const playersChannelName = `players-changes-${game.id}-${Date.now()}`
     const playersSubscription = supabase
-      .channel('players-changes')
+      .channel(playersChannelName)
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: '*', // INSERT, UPDATE, DELETE
           schema: 'public',
           table: 'players',
           filter: `game_id=eq.${game.id}`
         },
-        async () => {
-          // Recargar jugadores
-          const { data } = await supabase
-            .from('players')
-            .select('*')
-            .eq('game_id', game.id)
-            .order('created_at')
-          
-          if (data) {
-            setPlayers(data)
-          }
+        (payload) => {
+          console.log('WaitingRoom: Players change detected:', payload)
+          loadPlayers() // Recargar todos los jugadores
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('WaitingRoom: Players subscription status:', status)
+      })
 
-    // Suscribirse a cambios en el juego
+    // Configurar suscripción a cambios en el juego con un nombre único
+    const gameChannelName = `game-changes-${game.id}-${Date.now()}`
     const gameSubscription = supabase
-      .channel('game-changes')
+      .channel(gameChannelName)
       .on(
         'postgres_changes',
         {
@@ -75,14 +99,20 @@ export function WaitingRoom({ game, currentPlayer, players: initialPlayers, onSt
           filter: `id=eq.${game.id}`
         },
         (payload) => {
-          if (payload.new.status === 'playing') {
+          console.log('WaitingRoom: Game change detected:', payload)
+          if (payload.new && payload.new.status === 'playing') {
+            console.log('WaitingRoom: Game started, calling onStartGame')
             onStartGame()
           }
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('WaitingRoom: Game subscription status:', status)
+      })
 
+    // Cleanup function
     return () => {
+      console.log('WaitingRoom: Cleaning up subscriptions')
       playersSubscription.unsubscribe()
       gameSubscription.unsubscribe()
     }
@@ -104,13 +134,23 @@ export function WaitingRoom({ game, currentPlayer, players: initialPlayers, onSt
       return
     }
 
+    console.log('WaitingRoom: Starting game...')
+    
     try {
       const { error } = await supabase
         .from('games')
-        .update({ status: 'playing' })
+        .update({ 
+          status: 'playing',
+          current_player: 0 // Asegurar que empiece el primer jugador
+        })
         .eq('id', game.id)
 
-      if (error) throw error
+      if (error) {
+        console.error('Error starting game:', error)
+        throw error
+      }
+      
+      console.log('WaitingRoom: Game status updated successfully')
     } catch (error) {
       console.error('Error starting game:', error)
       alert('Error al iniciar el juego')
@@ -119,34 +159,53 @@ export function WaitingRoom({ game, currentPlayer, players: initialPlayers, onSt
 
   const handleLeaveGame = async () => {
     try {
+      console.log('WaitingRoom: Player leaving game:', currentPlayer.id)
+      
       // Eliminar jugador
-      await supabase
+      const { error: deleteError } = await supabase
         .from('players')
         .delete()
         .eq('id', currentPlayer.id)
+
+      if (deleteError) {
+        console.error('Error deleting player:', deleteError)
+        throw deleteError
+      }
 
       // Si era el admin y hay otros jugadores, hacer admin al siguiente
       if (currentPlayer.is_admin && players.length > 1) {
         const nextAdmin = players.find(p => p.id !== currentPlayer.id)
         if (nextAdmin) {
-          await supabase
+          console.log('WaitingRoom: Transferring admin to:', nextAdmin.id)
+          const { error: adminError } = await supabase
             .from('players')
             .update({ is_admin: true })
             .eq('id', nextAdmin.id)
+            
+          if (adminError) {
+            console.error('Error transferring admin:', adminError)
+          }
         }
       }
 
       // Si no quedan jugadores, eliminar la partida
       if (players.length <= 1) {
-        await supabase
+        console.log('WaitingRoom: No players left, deleting game')
+        const { error: gameError } = await supabase
           .from('games')
           .delete()
           .eq('id', game.id)
+          
+        if (gameError) {
+          console.error('Error deleting game:', gameError)
+        }
       }
 
       onLeaveGame()
     } catch (error) {
       console.error('Error leaving game:', error)
+      // Aún así, permitir que el usuario salga localmente
+      onLeaveGame()
     }
   }
 
