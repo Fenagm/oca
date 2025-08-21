@@ -39,6 +39,74 @@ interface MultiplayerGameBoardProps {
 
 const diceIcons = [Dice1, Dice2, Dice3, Dice4, Dice5, Dice6]
 
+// Fun emojis for each board position
+const cellEmojis = [
+  "🏠",
+  "🦋",
+  "🌸",
+  "🌈",
+  "⭐",
+  "🎈",
+  "🍭",
+  "🎨",
+  "🎪",
+  "🎠",
+  "🎡",
+  "🎢",
+  "🎯",
+  "🎲",
+  "🎮",
+  "🎸",
+  "🎺",
+  "🎻",
+  "🎭",
+  "🎪",
+  "🌟",
+  "✨",
+  "💫",
+  "🌙",
+  "☀️",
+  "🌻",
+  "🌺",
+  "🌷",
+  "🌹",
+  "🌼",
+  "🦄",
+  "🐰",
+  "🐱",
+  "🐶",
+  "🐸",
+  "🐧",
+  "🦊",
+  "🐨",
+  "🐼",
+  "🐯",
+  "🍎",
+  "🍊",
+  "🍋",
+  "🍌",
+  "🍇",
+  "🍓",
+  "🍑",
+  "🍒",
+  "🥝",
+  "🍍",
+  "🎂",
+  "🧁",
+  "🍪",
+  "🍩",
+  "🍬",
+  "🍭",
+  "🎈",
+  "🎁",
+  "🎊",
+  "🎉",
+  "🏆",
+  "🥇",
+  "🎖️",
+  "🏅",
+]
+
 export function MultiplayerGameBoard({
   game: initialGame,
   currentPlayer,
@@ -443,258 +511,246 @@ export function MultiplayerGameBoard({
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Modal de casilla especial */}
-      <SpecialCellModal
-        isOpen={showSpecialCellModal}
-        specialCell={currentSpecialCell}
-        playerName={currentPlayer.name}
-        onConfirm={handleSpecialCellConfirm}
-      />
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-pink-100 p-4">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Modal de casilla especial */}
+        <SpecialCellModal
+          isOpen={showSpecialCellModal}
+          specialCell={currentSpecialCell}
+          playerName={currentPlayer.name}
+          onConfirm={handleSpecialCellConfirm}
+        />
 
-      {/* Header del juego */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-amber-800">Juego de la Oca</h2>
-          <p className="text-amber-600">Código: {game.code}</p>
+        {/* Header del juego */}
+        <div className="text-center mb-6">
+          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-2">
+            🎮 Juego Mágico de la Oca 🎮
+          </h1>
+          <p className="text-lg text-purple-600">Código: {game.code}</p>
+          <Button
+            onClick={onLeaveGame}
+            variant="outline"
+            className="mt-4 border-red-200 text-red-600 hover:bg-red-50 bg-transparent"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Salir del Juego
+          </Button>
         </div>
-        <Button
-          onClick={onLeaveGame}
-          variant="outline"
-          className="border-red-200 text-red-600 hover:bg-red-50 bg-transparent"
-        >
-          <LogOut className="w-4 h-4 mr-2" />
-          Salir
-        </Button>
-      </div>
 
-      {/* Información del turno */}
-      <Card
-        className={`border-2 transition-all duration-300 ${
-          isMyTurn
-            ? "bg-gradient-to-r from-green-100 to-emerald-100 border-green-300 shadow-xl"
-            : "bg-white/80 border-amber-200"
-        }`}
-      >
-        <CardContent className="pt-4">
-          <div className="text-center">
+        {/* Información del turno */}
+        <Card
+          className={`border-3 transition-all duration-300 ${
+            isMyTurn
+              ? "bg-gradient-to-r from-green-100 to-emerald-100 border-green-400 current-player-glow"
+              : "bg-white/80 border-purple-300"
+          }`}
+        >
+          <CardContent className="pt-6 text-center">
             {isMyTurn ? (
               <div className="space-y-2">
-                <p className="text-lg font-semibold text-green-800">¡Es tu turno!</p>
-                <p className="text-green-600">Haz clic en el dado para lanzarlo</p>
+                <p className="text-2xl font-bold text-green-800">🌟 ¡Es tu turno! 🌟</p>
+                <p className="text-lg text-green-600">¡Haz clic en el dado mágico para lanzarlo!</p>
               </div>
             ) : (
               <div className="space-y-2">
-                <p className="text-lg font-semibold text-amber-800">
-                  Turno de {currentPlayerTurn?.avatar} {currentPlayerTurn?.name}
+                <p className="text-2xl font-bold text-purple-800">
+                  ⏳ Turno de {currentPlayerTurn?.avatar} {currentPlayerTurn?.name}
                 </p>
-                <p className="text-amber-600">Esperando su jugada...</p>
+                <p className="text-lg text-purple-600">Esperando su jugada mágica...</p>
               </div>
             )}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Dado */}
-      <div className="text-center">
-        <div className="relative">
-          <button
-            onClick={rollDice}
-            disabled={!isMyTurn || isRolling || showSpecialCellModal}
-            className={`
-              relative p-8 rounded-3xl transition-all duration-300 shadow-2xl border-4
-              ${
-                isMyTurn && !isRolling && !showSpecialCellModal
-                  ? "bg-gradient-to-br from-yellow-400 via-orange-400 to-red-400 hover:from-yellow-500 hover:via-orange-500 hover:to-red-500 hover:scale-110 cursor-pointer border-yellow-300 animate-pulse"
-                  : "bg-gradient-to-br from-gray-300 to-gray-400 cursor-not-allowed opacity-50 border-gray-400"
-              }
-              ${isRolling ? "animate-spin" : ""}
-            `}
-          >
-            <DiceIcon className="w-20 h-20 text-white drop-shadow-lg" />
-
-            {/* Sparkles around dice when it's player's turn */}
+        {/* Dado mágico */}
+        <div className="text-center">
+          <div className="dice-container inline-block relative mb-4">
             {isMyTurn && !isRolling && !showSpecialCellModal && (
               <>
-                <div className="absolute -top-2 -left-2 text-2xl animate-bounce">✨</div>
-                <div className="absolute -top-2 -right-2 text-2xl animate-bounce" style={{ animationDelay: "0.2s" }}>
-                  ⭐
-                </div>
-                <div className="absolute -bottom-2 -left-2 text-2xl animate-bounce" style={{ animationDelay: "0.4s" }}>
-                  🌟
-                </div>
-                <div className="absolute -bottom-2 -right-2 text-2xl animate-bounce" style={{ animationDelay: "0.6s" }}>
-                  💫
-                </div>
+                <div className="dice-sparkle"></div>
+                <div className="dice-sparkle"></div>
+                <div className="dice-sparkle"></div>
+                <div className="dice-sparkle"></div>
               </>
             )}
-          </button>
-        </div>
-
-        <div className="mt-4 bg-white/90 rounded-2xl px-6 py-3 shadow-lg border-2 border-gray-200">
-          <p className="text-xl font-bold text-amber-700">
-            {isRolling ? "🎲 ¡Rodando...!" : `🎯 Resultado: ${diceValue}`}
-          </p>
-        </div>
-      </div>
-
-      {/* Tablero */}
-      <Card className="bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-rainbow shadow-2xl">
-        <CardContent className="p-8">
-          <div className="grid grid-cols-8 gap-3 max-w-5xl mx-auto">
-            {Array.from({ length: 64 }, (_, i) => {
-              const position = i
-              const playersHere = sortedPlayers.filter((p) => p.position === position)
-              const specialCell = specialCells.find((cell) => cell.position === position)
-              const isSpecial = specialCell !== undefined
-
-              // Fun emojis for different positions
-              const getPositionEmoji = (pos: number) => {
-                if (pos === 0) return "🏠"
-                if (pos === 63) return "🏆"
-                if (pos % 9 === 0 && pos > 0) return "🌟"
-                if (pos === 6) return "🌉"
-                if (pos === 19) return "🏨"
-                if (pos === 31) return "🕳️"
-                if (pos === 42) return "💀"
-                if (pos === 58) return "🎯"
-                if (isSpecial) return "✨"
-
-                // Random fun emojis for regular positions
-                const funEmojis = ["🌸", "🦋", "🌈", "🍀", "🎈", "🎪", "🎨", "🎭", "🎪", "🎠"]
-                return funEmojis[pos % funEmojis.length]
-              }
-
-              return (
-                <div
-                  key={position}
-                  className={`
-                    relative w-16 h-16 rounded-2xl border-3 flex flex-col items-center justify-center text-sm font-bold transition-all duration-300 hover:scale-105 cursor-pointer shadow-lg
-                    ${
-                      position === 0
-                        ? "bg-gradient-to-br from-green-300 to-green-400 border-green-500 shadow-green-200"
-                        : position === 63
-                          ? "bg-gradient-to-br from-yellow-300 to-yellow-400 border-yellow-500 shadow-yellow-200"
-                          : isSpecial
-                            ? "bg-gradient-to-br from-purple-300 to-pink-400 border-purple-500 shadow-purple-200 animate-pulse"
-                            : position % 2 === 0
-                              ? "bg-gradient-to-br from-blue-200 to-blue-300 border-blue-400 shadow-blue-100"
-                              : "bg-gradient-to-br from-orange-200 to-orange-300 border-orange-400 shadow-orange-100"
-                    }
-                  `}
-                  title={specialCell ? `${specialCell.name}: ${specialCell.description}` : `Casilla ${position}`}
-                >
-                  {/* Position number */}
-                  <div className="absolute -top-2 -left-2 bg-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold text-gray-700 border-2 border-gray-300 shadow-sm">
-                    {position}
-                  </div>
-
-                  {/* Position emoji */}
-                  <div className="text-2xl mb-1">{getPositionEmoji(position)}</div>
-
-                  {/* Special cell indicator */}
-                  {isSpecial && (
-                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-pink-400 to-purple-500 rounded-full animate-bounce">
-                      <div className="w-full h-full rounded-full bg-white/30"></div>
-                    </div>
-                  )}
-
-                  {/* Players on this cell */}
-                  {playersHere.length > 0 && (
-                    <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1">
-                      {playersHere.map((player) => (
-                        <div
-                          key={player.id}
-                          className="text-2xl animate-bounce bg-white rounded-full p-1 shadow-lg border-2 border-gray-200"
-                          title={player.name}
-                          style={{ animationDelay: `${Math.random() * 0.5}s` }}
-                        >
-                          {player.avatar}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+            <button
+              onClick={rollDice}
+              disabled={!isMyTurn || isRolling || showSpecialCellModal}
+              className={`
+                p-8 rounded-3xl transition-all duration-300 shadow-2xl border-4
+                ${
+                  isMyTurn && !isRolling && !showSpecialCellModal
+                    ? "bg-gradient-to-br from-yellow-400 via-orange-400 to-red-400 hover:from-yellow-500 hover:via-orange-500 hover:to-red-500 hover:scale-110 cursor-pointer border-yellow-300"
+                    : "bg-gradient-to-br from-gray-300 to-gray-400 cursor-not-allowed opacity-50 border-gray-400"
+                }
+                ${isRolling ? "animate-spin" : ""}
+              `}
+            >
+              <DiceIcon className="w-20 h-20 text-white drop-shadow-lg" />
+            </button>
           </div>
 
-          {/* Fun legend */}
-          <div className="mt-6 text-center">
-            <div className="inline-flex items-center gap-4 bg-white/80 rounded-2xl px-6 py-3 shadow-lg border-2 border-gray-200">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">🏠</span>
-                <span className="text-sm font-medium text-gray-700">Inicio</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">🏆</span>
-                <span className="text-sm font-medium text-gray-700">Meta</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">✨</span>
-                <span className="text-sm font-medium text-gray-700">¡Sorpresa!</span>
+          <div className="bg-white/90 rounded-2xl px-6 py-3 shadow-lg border-3 border-purple-300 inline-block">
+            <p className="text-xl font-bold text-purple-700">
+              {isRolling ? "🎲 ¡Rodando mágicamente...!" : `🎯 Resultado: ${diceValue}`}
+            </p>
+          </div>
+        </div>
+
+        {/* Mensaje del juego */}
+        {gameMessage && (
+          <Card className="bg-gradient-to-r from-blue-100 to-purple-100 border-3 border-blue-300">
+            <CardContent className="pt-4">
+              <p className="text-center text-xl font-bold text-blue-800">{gameMessage}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Tablero mágico */}
+        <Card className="bg-gradient-to-br from-blue-50 to-purple-50 border-3 border-rainbow shadow-2xl">
+          <CardContent className="p-8">
+            <div className="grid grid-cols-8 gap-3 max-w-5xl mx-auto">
+              {Array.from({ length: 64 }, (_, i) => {
+                const position = i
+                const playersHere = sortedPlayers.filter((p) => p.position === position)
+                const specialCell = specialCells.find((cell) => cell.position === position)
+                const isSpecial = specialCell !== undefined
+
+                return (
+                  <div
+                    key={position}
+                    className={`
+                      board-cell relative w-16 h-16 rounded-2xl border-3 flex flex-col items-center justify-center text-sm font-bold transition-all duration-300 shadow-lg
+                      ${
+                        position === 0
+                          ? "bg-gradient-to-br from-green-300 to-green-500 border-green-500"
+                          : position === 63
+                            ? "bg-gradient-to-br from-yellow-300 to-orange-500 border-orange-500"
+                            : isSpecial
+                              ? "special-cell border-purple-500"
+                              : position % 2 === 0
+                                ? "bg-gradient-to-br from-blue-200 to-blue-400 border-blue-400"
+                                : "bg-gradient-to-br from-pink-200 to-pink-400 border-pink-400"
+                      }
+                    `}
+                    title={specialCell ? `${specialCell.name}: ${specialCell.description}` : `Casilla ${position}`}
+                  >
+                    {/* Número de posición */}
+                    <div className="absolute -top-2 -left-2 bg-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold text-gray-700 border-2 border-gray-300 shadow-sm">
+                      {position}
+                    </div>
+
+                    {/* Emoji de posición */}
+                    <div className="text-2xl mb-1">{cellEmojis[position] || "⭐"}</div>
+
+                    {/* Indicador de casilla especial */}
+                    {isSpecial && (
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-pink-400 to-purple-500 rounded-full animate-bounce">
+                        <div className="w-full h-full rounded-full bg-white/30"></div>
+                      </div>
+                    )}
+
+                    {/* Jugadores en esta casilla */}
+                    {playersHere.length > 0 && (
+                      <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1">
+                        {playersHere.map((player) => (
+                          <div
+                            key={player.id}
+                            className={`
+                              player-piece text-2xl bg-white rounded-full p-1 shadow-lg border-2 border-gray-200
+                              ${player.id === currentPlayerTurn?.id ? "current-player-glow" : ""}
+                            `}
+                            title={player.name}
+                          >
+                            {player.avatar}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Leyenda divertida */}
+            <div className="mt-6 text-center">
+              <div className="inline-flex items-center gap-4 bg-white/80 rounded-2xl px-6 py-3 shadow-lg border-3 border-purple-300">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🏠</span>
+                  <span className="text-sm font-bold text-gray-700">Inicio</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🏆</span>
+                  <span className="text-sm font-bold text-gray-700">Meta</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">✨</span>
+                  <span className="text-sm font-bold text-gray-700">¡Sorpresa Mágica!</span>
+                </div>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Lista de jugadores */}
-      <Card className="bg-gradient-to-br from-green-50 to-blue-50 border-2 border-blue-200 shadow-2xl">
-        <CardContent className="pt-6">
-          <h3 className="text-2xl font-bold text-center mb-6 text-purple-700">🎮 Jugadores 🎮</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {sortedPlayers.map((player, index) => (
-              <div
-                key={player.id}
-                className={`
-                  relative p-6 rounded-2xl border-3 transition-all duration-300 hover:scale-105 shadow-xl
-                  ${
-                    index === game.current_player
-                      ? "bg-gradient-to-br from-green-300 to-emerald-400 border-green-500 shadow-green-200 animate-pulse"
-                      : "bg-gradient-to-br from-blue-200 to-purple-300 border-blue-400 shadow-blue-100"
-                  }
-                `}
-              >
-                {/* Crown for current player */}
-                {index === game.current_player && (
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 text-3xl animate-bounce">👑</div>
-                )}
-
-                <div className="flex items-center gap-4">
-                  <div className="text-4xl bg-white rounded-full p-3 shadow-lg border-2 border-gray-200">
-                    {player.avatar}
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-bold text-lg text-gray-800 flex items-center gap-2">
-                      {player.name}
-                      {index === game.current_player && (
-                        <span className="bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-sm font-bold animate-bounce">
-                          ¡Tu turno! 🎯
-                        </span>
-                      )}
-                      {player.id === currentPlayer.id && (
-                        <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold">
-                          Eres tú 😊
-                        </span>
-                      )}
+        {/* Lista de jugadores mágicos */}
+        <Card className="bg-gradient-to-br from-green-50 to-blue-50 border-3 border-blue-300 shadow-2xl">
+          <CardContent className="pt-6">
+            <h3 className="text-2xl font-bold text-center mb-6 text-purple-700">🎮 Jugadores Mágicos 🎮</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {sortedPlayers.map((player, index) => (
+                <div
+                  key={player.id}
+                  className={`
+                    relative p-6 rounded-2xl border-3 transition-all duration-300 hover:scale-105 shadow-xl
+                    ${
+                      index === game.current_player
+                        ? "bg-gradient-to-br from-green-300 to-emerald-400 border-green-500 current-player-glow"
+                        : "bg-gradient-to-br from-blue-200 to-purple-300 border-blue-400"
+                    }
+                  `}
+                >
+                  {/* Corona para el jugador actual */}
+                  {index === game.current_player && (
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 text-3xl animate-bounce">
+                      👑
                     </div>
-                    <div className="text-lg font-semibold text-gray-700 mt-1">📍 Casilla {player.position}/63</div>
+                  )}
 
-                    {/* Progress bar */}
-                    <div className="mt-2 bg-white/50 rounded-full h-3 overflow-hidden border border-gray-300">
-                      <div
-                        className="h-full bg-gradient-to-r from-green-400 to-blue-500 transition-all duration-500 rounded-full"
-                        style={{ width: `${(player.position / 63) * 100}%` }}
-                      ></div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-4xl bg-white rounded-full p-3 shadow-lg border-3 border-gray-200">
+                      {player.avatar}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-bold text-lg text-gray-800 flex items-center gap-2 flex-wrap">
+                        {player.name}
+                        {index === game.current_player && (
+                          <span className="bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-sm font-bold animate-bounce">
+                            ¡Tu turno! 🎯
+                          </span>
+                        )}
+                        {player.id === currentPlayer.id && (
+                          <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                            Eres tú 😊
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-lg font-semibold text-gray-700 mt-1">📍 Casilla {player.position}/63</div>
+
+                      {/* Barra de progreso mágica */}
+                      <div className="mt-2 bg-white/50 rounded-full h-4 overflow-hidden border-2 border-gray-300">
+                        <div
+                          className="progress-bar h-full transition-all duration-500 rounded-full"
+                          style={{ width: `${(player.position / 63) * 100}%` }}
+                        ></div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
